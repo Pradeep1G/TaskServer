@@ -9,6 +9,9 @@ import random
 import jwt
 import datetime
 
+from dotenv import load_dotenv
+import os
+
 app=Flask(__name__)
 CORS(app)
 
@@ -20,13 +23,13 @@ app.config['MAIL_PORT'] = 465
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 app.config['MAIL_USERNAME'] = 'pradeepgeddada31@gmail.com'  # Replace with your email address
-app.config['MAIL_PASSWORD'] = 'dkjtxrfbelenaebn'  # Replace with your email password
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')  # Replace with your email password
 
 mail = Mail(app)
 
 
 
-client = MongoClient('mongodb+srv://geddadavenkatapradeep:Pradeep%402003@cluster0.ehab84r.mongodb.net/?retryWrites=true&w=majority')
+client = MongoClient(os.environ.get('MONGO_URI'))
 
 # mongodb+srv://PradeeP1G:Pradeep%402003@cluster0.50omidk.mongodb.net
 
