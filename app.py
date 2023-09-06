@@ -15,6 +15,9 @@ import os
 
 app=Flask(__name__)
 CORS(app)
+CORS(app, resources={r"/deleteEvent": {"origins": "https://main--tasks-manager-site.netlify.app"}})
+
+
 
 
 
@@ -319,6 +322,9 @@ def sfiftEvent():
         # print(jsonify(e))
         return jsonify({"message": str(e)}), 500
     
+@app.route('/deleteEvent', methods=['OPTIONS'])
+def handle_preflight():
+    return '', 204  # No content in the response for preflight requests
 
 
 @app.route("/deleteEvent", methods=["POST"])
