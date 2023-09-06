@@ -8,6 +8,7 @@ from pymongo.errors import InvalidOperation, DuplicateKeyError
 import random
 import jwt
 import datetime
+import json
 
 from dotenv import load_dotenv
 import os
@@ -62,8 +63,20 @@ def addUser():
     email=data['email']
     password=data['password']
     name=data['name']
+
+    collection_data = {
+        "WorkSpace0": ""
+    }
+
     collection = db.Users
     result = collection.insert_one(data)
+    AllUsersCollectionsDB = client.AllUsersCollections
+    newCollecton = AllUsersCollectionsDB[data['dbname']]
+    inserted_data = newCollecton.insert_one(collection_data)
+
+
+
+
     if result:
         return jsonify({"is_registered":True})
     else:
@@ -96,9 +109,260 @@ def verifyMail(mailid):
 
 
 
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        return super().default(obj)
+
+app.json_encoder = CustomJSONEncoder
+
+
+@app.route("/getUserData", methods=["POST"])
+def getUserData():
+    data = request.json
+    # print(data)
+    
+    db=client.AllUsersCollections
+
+    
+    collection = db[data["collectionName"]]
+    data = list(collection.find({}))
+    # print(data)
+    return jsonify({"data":data})
 
 
 
+@app.route("/updateEventData", methods=["POST"])
+def update_event_data():
+    try:
+        # Get data from the request
+        data = request.json
+        collection_name = data.get("collectionName")
+        workspace = data.get("WorkSpace")
+        work_type = data.get("type")
+        work_name = data.get("workName")
+        updated_work_name = data.get("updatedWorkName")
+        updated_data = data.get("updatedData")
+
+        db = client.AllUsersCollections
+
+        # Specify the filter to match the document you want to update
+        filter = { f"{workspace}.{work_type}.{work_name}": {
+                        "$exists": True
+                    }
+            }
+        
+
+        # print(list(db[collection_name].find({f'{workspace}.{work_type}':{"$exists":True}})))
+        
+
+        # print(data)
+        # Update the document using the $set operator
+
+
+        if work_name=="":
+            # print(data)
+            
+            if updated_work_name:
+
+                print(data)
+
+                
+                filter = { f"{workspace}.{work_type}": {
+                        "$exists": True
+                    }
+                }
+                
+                update={
+                    "$set" : {
+                        f"{workspace}.{work_type}.{updated_work_name}":updated_data
+                    },
+                        "$push": {f"{workspace}.{work_type}.AllWorks": updated_work_name}
+                }
+                
+                result = db[collection_name].update_one(filter, update)
+                print(result.modified_count)
+
+
+
+        else:
+               
+
+            if work_name != updated_work_name:
+
+                update = {
+                    "$set": {
+                        f"{workspace}.{work_type}.{updated_work_name}": updated_data
+                    },
+                        "$push": {f"{workspace}.{work_type}.AllWorks": updated_work_name}
+                }
+            else:
+                update = {
+                    "$set": {
+                        f"{workspace}.{work_type}.{work_name}": updated_data
+                    }
+                }
+
+            # Update the AllEvents array with the new event name if it has changed
+            # if work_name != updated_work_name:
+            #     update["$push"] = {f"{workspace}.{work_type}.AllWorks": updated_work_name}
+            #     update["$"]
+
+            # Update the document in the specified collection
+            result = db[collection_name].update_one(filter, update)
+
+        if result.modified_count == 1:
+            # print(data)
+            # Check if the event name needs to be updated
+            if work_name != updated_work_name and work_name!="":
+                print(data)
+                # If the event name has changed, remove the old event
+                update1 = {
+                    "$unset": {
+                        f"{workspace}.{work_type}.{work_name}": ""
+                    }
+                }
+                db[collection_name].update_one(filter, update1)
+
+                filter = { f"{workspace}.{work_type}.AllWorks": {
+                        "$exists": True
+                }
+                }
+
+            
+
+                pull_update = {
+                    "$pull": {f"{workspace}.{work_type}.AllWorks": work_name}
+                }
+                db[collection_name].update_one(filter, pull_update)
+
+                
+            return jsonify({"message": "Document updated successfully"})
+        else:
+            return jsonify({"message": "Document not found or not updated"})
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+
+
+@app.route("/shiftEvent", methods=["POST"])
+def sfiftEvent():
+    data = request.json
+
+    print(data)
+
+    db = client.AllUsersCollections
+    collection = db[data["collectionName"]]
+    work_space = data["WorkSpace"]
+    type_to_add = data["typeToAdd"]
+    work_to_add = data["workToAdd"]
+    data_to_add = data["dataToAdd"]
+    type_to_delete = data["typeToDelete"]
+    work_to_delete = data["workToDelete"]
+
+    print(work_space,type_to_add,work_to_add,data_to_add)
+
+    # data_to_insert = {work_to_add:data_to_add}
+
+
+    addFilter = { f"{work_space}.{type_to_add}" : {
+                        "$exists": True
+                }
+    }
+
+    try:
+        # Get the work item to insert and the workspace name from the request
+        
+        if not work_to_add or not work_space:
+            return jsonify({"message": "Invalid request data."}), 400
+
+        # Find the document you want to update (replace the query with your criteria)
+        query = {"_id": "64f607413b49a69c4e5bd1ac"}  # Replace with your query criteria
+        documents = collection.find({})
+        # print(documents)
+
+        # Check if any documents were found
+        if documents:
+            # print("Success")
+            # Loop through the documents
+            for doc in documents:
+                # print(doc["WorkSpace0"]['Doing'])
+
+                # Check if the work item already exists in the "Doing" section
+                if work_to_add in doc[work_space][type_to_add]["AllWorks"]:
+                    print("success")
+                    return jsonify({"message": f"Work '{work_to_add}' already exists in the Doing section."}), 400
+
+                print("Success")
+                # Add the work item to "Doing"
+                doc[work_space][type_to_add]["AllWorks"].append(work_to_add)
+                doc[work_space][type_to_add][work_to_add] = data_to_add
+
+                
+                 # Remove the work item from the old type
+                if work_to_delete in doc[work_space][type_to_delete]["AllWorks"]:
+                    doc[work_space][type_to_delete]["AllWorks"].remove(work_to_delete)
+                    del doc[work_space][type_to_delete][work_to_delete]
+                    
+
+                # Save the updated document back to the collection
+                collection.replace_one({"_id": doc["_id"]}, doc)
+
+
+
+            return jsonify({"message": f"Work '{work_to_add}' inserted into Doing successfully."}), 200
+        else:
+            return jsonify({"message": "Document not found."}), 404
+    except Exception as e:
+        # print(jsonify(e))
+        return jsonify({"message": str(e)}), 500
+    
+
+
+@app.route("/deleteEvent", methods=["POST"])
+def deleteEvent():
+    data = request.json
+    print(data)
+
+    # collection_name = data.get("collectionName")
+    workspace = data.get("WorkSpace")
+    event_type = data.get("eventType")
+    event_name = data.get("eventName")
+    db = client.AllUsersCollections
+    collection = db[data["collectionName"]]
+
+    filter = {
+        f'{workspace}.{event_type}.{event_name}':{"$exists":True}
+    }
+    update = {
+        "$unset":{
+            f'{workspace}.{event_type}.{event_name}':""
+        }
+    }
+    result = collection.update_one(filter, update)
+
+    filter1 = { f"{workspace}.{event_type}.AllWorks": {
+                        "$exists": True
+                }
+                }
+
+            
+
+    pull_update = {
+        "$pull": {f"{workspace}.{event_type}.AllWorks": event_name}
+    }
+    result1 = collection.update_one(filter1, pull_update)
+
+
+
+    print(result1.modified_count)
+    
+
+
+    return jsonify({"messege":"connected"})
+            
 
 
 
