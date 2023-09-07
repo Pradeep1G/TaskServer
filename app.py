@@ -15,7 +15,7 @@ import os
 
 app=Flask(__name__)
 CORS(app)
-CORS(app, resources={r"/deleteEvent": {"origins": "https://main--tasks-manager-site.netlify.app"}})
+# CORS(app, resources={r"/": {"origins": "https://main--tasks-manager-site.netlify.app"}})
 
 
 
@@ -56,7 +56,7 @@ def checkUser():
         return jsonify({"act_available":False})
     else:
         if result['password']==password:
-            return jsonify({"act_available":True, "is_password_correct":True})
+            return jsonify({"act_available":True, "is_password_correct":True, "name":result['name']})
         else:
             return jsonify({'act_available':True, 'is_password_correct':False})
 
@@ -68,7 +68,18 @@ def addUser():
     name=data['name']
 
     collection_data = {
-        "WorkSpace0": ""
+        "WorkSpace0": {
+            "bgColor":"#fff",
+            "ToDo" : {
+                "AllWorks":[]
+            },
+            "Doing" : {
+                "AllWorks":[]
+            },
+            "Done" : {
+                "AllWorks":[]
+            }
+        }
     }
 
     collection = db.Users
