@@ -96,6 +96,11 @@ def addUser():
     else:
         return jsonify({"is_registered":False})
     
+
+
+
+
+    
 @app.route("/verifyMail/<string:mailid>", methods=["POST"])
 def verifyMail(mailid):
     data = request.json
@@ -144,6 +149,60 @@ def getUserData():
     data = list(collection.find({}))
     # print(data)
     return jsonify({"data":data})
+
+
+@app.route("/addWorkspace", methods=["POST"])
+def addWorkspace():
+    data = request.json
+
+    db=client.AllUsersCollections
+    collection = db[data["collectionName"]]
+
+    data = list(collection.find({}))
+
+    
+
+    newWorkspace = "WorkSpace"+str(len(data[0])-1)
+    print(newWorkspace)
+
+    newData =   {
+            "bgColor":"#fff",
+            "ToDo" : {
+                "AllWorks":[]
+            },
+            "Doing" : {
+                "AllWorks":[]
+            },
+            "Done" : {
+                "AllWorks":[]
+            }
+        }
+    
+
+
+
+    filter = {
+        f'WorkSpace0':{
+            "$exists":True
+        }
+    }
+                
+    update={
+        "$set" : {
+            f"{newWorkspace}":newData
+        }
+        }
+    
+    result = collection.update_one(filter, update)
+    print(result.modified_count)
+
+
+
+    if result.acknowledged:
+        return jsonify({"message": "Successfully Added WorkSpace"})
+    else:
+        return jsonify({"error": "Failed to Add WorkSpace"})
+
 
 
 
