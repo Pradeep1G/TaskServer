@@ -125,7 +125,34 @@ def verifyMail(mailid):
     
     else:
         return jsonify({"Act_already_Registered":True})
+    
+@app.route("/forgetPassword/<string:mailid>", methods=["POST"])
+def forgetPassword(mailid):
+    data = request.json
+    db=client.TaskMPeople
+    collection = db.Users
+    filter = {'email':data['mail']}
 
+    result = collection.find_one(filter)
+
+    print(result)
+    if result:
+
+        password = result["password"]
+        otp = random.randint(100000,999999)
+
+        try:
+            msg = Message('Confidential Message from Tasker',
+                          sender="prfadeepgeddada31@gmail.com",
+                          recipients=[mailid])
+            msg.body = f'Dear customer, \n We have a request from this mail id to send your account password. Do not forget your password next time.YourPasswordIs{password}Please delete this message after viewing.  \nRegards,\nTasker Services.'
+            mail.send(msg)
+            return jsonify({"message":"Your password is sent to your mail."})
+        except Exception as e:
+            return jsonify({"message":"Something went wrong, please Try after sometime."})
+
+    else:
+        return jsonify({"message":"Mail Not Found"})
 
 
 class CustomJSONEncoder(json.JSONEncoder):
