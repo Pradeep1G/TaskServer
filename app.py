@@ -469,7 +469,7 @@ def deleteEvent():
 
 
 @app.route('/addAWSWeatherUser', methods=['PUT'])
-def addUser():
+def addAWSWeatherUser():
     data = request.json
 
     db = client.awslambda
