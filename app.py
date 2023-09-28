@@ -465,6 +465,28 @@ def deleteEvent():
 
 
     return jsonify({"messege":"connected"})
+
+
+
+@app.route('/addAWSWeatherUser', methods=['PUT'])
+def addUser():
+    data = request.json
+
+    db = client.awslambda
+    
+    collection = db.weatherusers
+    result = collection.insert_one(data)
+    
+
+
+
+
+    if result:
+        print("Success")
+        return jsonify({"is_success":True})
+    else:
+        return jsonify({"is_success":False})
+    
             
 
 
